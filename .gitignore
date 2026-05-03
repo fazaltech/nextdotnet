@@ -1,10 +1,21 @@
-backend/src/Backend.Services/obj/Debug/net10.0/Backend.Services.AssemblyInfoInputs.cache
-backend/src/Backend.Services/obj/Debug/net10.0/Backend.Services.AssemblyInfo.cs
-backend/src/Backend.Repositories/obj/Debug/net10.0/Backend.Repositories.AssemblyInfoInputs.cache
-backend/src/Backend.Repositories/obj/Debug/net10.0/Backend.Repositories.AssemblyInfo.cs
-backend/src/Backend.Domain/obj/Debug/net10.0/Backend.Domain.AssemblyInfoInputs.cache
-backend/src/Backend.Domain/obj/Debug/net10.0/Backend.Domain.AssemblyInfo.cs
-backend/src/Backend.Application/obj/Debug/net10.0/Backend.Application.AssemblyInfoInputs.cache
-backend/src/Backend.Application/obj/Debug/net10.0/Backend.Application.AssemblyInfo.cs
-backend/src/Backend.Api/obj/Debug/net10.0/Backend.Api.AssemblyInfoInputs.cache
-backend/src/Backend.Api/obj/Debug/net10.0/Backend.Api.AssemblyInfo.cs
+# Dotnet backend build artifacts
+backend/**/bin/
+backend/**/obj/
+backend/**/TestResults/
+
+# Dotnet user/machine-specific files
+backend/**/*.user
+backend/**/*.rsuser
+backend/**/*.suo
+backend/**/*.userosscache
+backend/**/*.sln.docstates
+
+# IDE folders
+.vs/
+.idea/
+.vscode/
+
+# Common local files
+*.log
+Thumbs.db
+.DS_Store

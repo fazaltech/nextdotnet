@@ -2,11 +2,13 @@ using Backend.Repositories;
 using Backend.Repositories.Initialization;
 using Backend.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -29,12 +31,20 @@ using (var scope = app.Services.CreateScope())
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/", () =>
+{
+    return app.Environment.IsDevelopment()
+        ? Results.Redirect("/swagger")
+        : Results.Ok(new { status = "ok", service = "Backend.Api" });
+});
 
 app.MapControllers();
 

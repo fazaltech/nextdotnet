@@ -1,4 +1,67 @@
+"use client";
+
+import { type FormEvent, startTransition, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  API_BASE_URL,
+  LOGIN_ENDPOINT,
+  loadAuthSession,
+  saveAuthSession,
+  type LoginResponse,
+} from "@/lib/auth";
+
 export default function Home() {
+  const router = useRouter();
+  const [userNameOrEmail, setUserNameOrEmail] = useState("admin");
+  const [password, setPassword] = useState("Admin@12345");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (loadAuthSession()) {
+      startTransition(() => {
+        router.replace("/dashboard");
+      });
+    }
+  }, [router]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(LOGIN_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userNameOrEmail,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        setErrorMessage("Login failed. Check your username or password.");
+        return;
+      }
+
+      const payload = (await response.json()) as LoginResponse;
+      saveAuthSession(payload);
+
+      startTransition(() => {
+        router.push("/dashboard");
+      });
+    } catch {
+      setErrorMessage(
+        "Unable to reach the API. Make sure the backend is running on http://localhost:5179.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:px-6">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,#5ae4ef_0%,#7f68ff_46%,#e538dd_100%)]" />
@@ -16,7 +79,7 @@ export default function Home() {
                 Login
               </h1>
 
-              <form className="mt-10 space-y-6 text-left">
+              <form className="mt-10 space-y-6 text-left" onSubmit={handleSubmit}>
                 <div>
                   <label
                     htmlFor="username"
@@ -40,6 +103,9 @@ export default function Home() {
                       id="username"
                       name="username"
                       type="text"
+                      value={userNameOrEmail}
+                      onChange={(event) => setUserNameOrEmail(event.target.value)}
+                      autoComplete="username"
                       placeholder="Type your username"
                       className="w-full border-none bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
                     />
@@ -69,11 +135,20 @@ export default function Home() {
                       id="password"
                       name="password"
                       type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      autoComplete="current-password"
                       placeholder="Type your password"
                       className="w-full border-none bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
                     />
                   </div>
                 </div>
+
+                {errorMessage ? (
+                  <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">
+                    {errorMessage}
+                  </p>
+                ) : null}
 
                 <div className="text-right">
                   <a
@@ -86,10 +161,21 @@ export default function Home() {
 
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="block w-full rounded-full bg-[linear-gradient(90deg,#58e3f0_0%,#7d67ff_45%,#e538dd_100%)] px-5 py-3 text-sm font-semibold tracking-[0.18em] text-white shadow-[0_12px_28px_rgba(140,76,255,0.35)] transition-transform hover:-translate-y-0.5"
                 >
-                  LOGIN
+                  {isSubmitting ? "SIGNING IN..." : "LOGIN"}
                 </button>
+
+                <div className="rounded-[1.25rem] bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
+                  <p className="font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    API Endpoint
+                  </p>
+                  <p className="mt-2 break-all">
+                    {API_BASE_URL}
+                    /auth/login
+                  </p>
+                </div>
               </form>
 
               <div className="mt-10 text-center">

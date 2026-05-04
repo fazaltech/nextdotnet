@@ -2,7 +2,19 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, set the frontend API base URL:
+
+```bash
+cp .env.example .env.local
+```
+
+By default the example points to:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5179/api
+```
+
+Then run the development server:
 
 ```bash
 npm run dev

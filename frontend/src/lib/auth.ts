@@ -45,3 +45,10 @@ export function saveAuthSession(session: LoginResponse): void {
 export function clearAuthSession(): void {
   window.localStorage.removeItem(AUTH_STORAGE_KEY);
 }
+
+export function createAuthHeaders(accessToken: string): HeadersInit {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
+  };
+}

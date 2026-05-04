@@ -55,7 +55,7 @@ export default function Home() {
       });
     } catch {
       setErrorMessage(
-        "Unable to reach the API. Make sure the backend is running on http://localhost:5179.",
+        `Unable to reach the API. Make sure the backend is running on ${API_BASE_URL}.`,
       );
     } finally {
       setIsSubmitting(false);

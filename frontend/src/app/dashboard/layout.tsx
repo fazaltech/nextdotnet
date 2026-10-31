@@ -22,7 +22,9 @@ export default function DashboardLayout({
       return;
     }
 
-    setSession(currentSession);
+    startTransition(() => {
+      setSession(currentSession);
+    });
   }, [router]);
 
   if (!session) {

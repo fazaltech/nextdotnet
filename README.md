@@ -1,5 +1,15 @@
 # Restaurant Management System
 
+## Screenshots
+
+### Sign in
+
+![Savorly restaurant management sign-in screen](docs/images/sign-in.png)
+
+### Restaurant overview
+
+![Savorly restaurant dashboard showing revenue, active orders, sales performance, and table occupancy](docs/images/restaurant-overview.png)
+
 ## Project Summary
 
 This repository contains a full-stack restaurant management system built with a Next.js frontend and an ASP.NET Core backend. The current implementation covers JWT-based authentication, a dashboard shell, customer data retrieval from secured API endpoints, and backend modules for common restaurant operations such as menu items, tables, orders, invoices, payments, inventory, expenses, reports, roles, users, and settings.
@@ -66,15 +76,22 @@ frontend/
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22.13+ (required by the installed frontend tooling)
 - npm
 - .NET 10 SDK
 - SQL Server instance
 
 ### Backend
 
-1. Update the SQL Server connection string in `backend/src/Backend.Api/appsettings.json`.
-2. Start the API:
+1. Update the SQL Server connection string in `backend/src/Backend.Api/appsettings.Development.json` for local development. This overrides `appsettings.json` when using the development launch profile.
+2. Restore the required NuGet packages and build the solution:
+
+```bash
+dotnet restore backend/Backend.sln
+dotnet build backend/Backend.sln --no-restore
+```
+
+3. Start the API:
 
 ```bash
 dotnet run --project backend/src/Backend.Api
@@ -88,7 +105,7 @@ The development profile runs on `http://localhost:5179`, with Swagger available 
 
 ```bash
 cd frontend
-npm install
+npm ci
 ```
 
 2. Create the local environment file from the example:

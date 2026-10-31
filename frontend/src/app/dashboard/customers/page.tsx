@@ -2,7 +2,7 @@
 
 import { startTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchWithAuth } from "@/components/dashboard/dashboard-shell";
+import { fetchWithAuth } from "@/lib/api";
 import { buildApiUrl } from "@/lib/config";
 
 type CustomerDto = {

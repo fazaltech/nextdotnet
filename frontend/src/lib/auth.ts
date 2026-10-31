@@ -1,4 +1,4 @@
-import { API_BASE_URL, buildApiUrl } from "./config";
+import { buildApiUrl } from "./config";
 
 export { API_BASE_URL } from "./config";
 

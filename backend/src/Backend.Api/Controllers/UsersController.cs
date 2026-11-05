@@ -9,6 +9,9 @@ namespace Backend.Api.Controllers;
 [Route("api/users")]
 public sealed class UsersController(IUserService userService) : ControllerBase
 {
+    [HttpPost("{id:int}/reset-password")]
+    public async Task<IActionResult> ResetPassword(int id, ResetPasswordRequest request, CancellationToken cancellationToken)
+        => await userService.ResetPasswordAsync(id, request, cancellationToken) ? NoContent() : NotFound();
     [HttpGet]
     public Task<IReadOnlyList<UserDto>> GetAll(CancellationToken cancellationToken)
         => userService.GetAllAsync(cancellationToken);

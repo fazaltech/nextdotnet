@@ -36,6 +36,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddBusinessServices(this IServiceCollection services)
     {
+        services.AddScoped<Backend.Application.Operations.IOperationsService, Backend.Services.Operations.OperationsService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRolePermissionService, RolePermissionService>();

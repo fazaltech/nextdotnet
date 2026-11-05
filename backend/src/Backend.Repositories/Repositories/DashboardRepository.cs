@@ -19,11 +19,11 @@ public sealed class DashboardRepository(IDbConnectionFactory connectionFactory) 
             cancellationToken: cancellationToken));
 
         var todaySales = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(@"
-SELECT ISNULL(SUM(TotalAmount), 0)
+SELECT ISNULL(SUM(TotalAmount-RefundAmount), 0)
 FROM dbo.RmsInvoices
 WHERE InvoiceDateUtc >= @StartDate
   AND InvoiceDateUtc < @EndDate
-  AND IsActive = 1;",
+  AND Status<>4 AND IsActive = 1;",
             new { StartDate = todayStart, EndDate = tomorrowStart }, cancellationToken: cancellationToken));
 
         var totalCustomers = await connection.ExecuteScalarAsync<int>(new CommandDefinition(

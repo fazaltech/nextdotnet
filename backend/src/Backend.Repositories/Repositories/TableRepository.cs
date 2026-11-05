@@ -32,6 +32,7 @@ WHERE Id = @Id;";
 
     public async Task<int> CreateAsync(DiningTableUpsertRequest request, CancellationToken cancellationToken = default)
     {
+        if(request.IsOccupied) throw new InvalidOperationException("Create a table as available, then open its dining session to occupy it.");
         const string sql = @"
 INSERT INTO dbo.RmsDiningTables(TableNumber, Capacity, IsOccupied, IsActive)
 VALUES (@TableNumber, @Capacity, @IsOccupied, @IsActive);
@@ -47,10 +48,9 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
 UPDATE dbo.RmsDiningTables
 SET TableNumber = @TableNumber,
     Capacity = @Capacity,
-    IsOccupied = @IsOccupied,
     IsActive = @IsActive,
     UpdatedAtUtc = SYSUTCDATETIME()
-WHERE Id = @Id;";
+WHERE Id = @Id AND IsOccupied=@IsOccupied AND (@IsActive=1 OR IsOccupied=0) AND NOT EXISTS(SELECT 1 FROM dbo.RmsSeatAssignments a JOIN dbo.RmsDiningSessions s ON s.Id=a.SessionId WHERE a.TableId=@Id AND s.ClosedAtUtc IS NULL AND a.Seat>@Capacity);";
 
         await using var connection = await connectionFactory.OpenSqlConnectionAsync(cancellationToken);
         var rows = await connection.ExecuteAsync(new CommandDefinition(sql,
@@ -62,7 +62,7 @@ WHERE Id = @Id;";
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        const string sql = @"DELETE FROM dbo.RmsDiningTables WHERE Id = @Id;";
+        const string sql = @"UPDATE dbo.RmsDiningTables SET IsActive=0 WHERE Id=@Id AND IsOccupied=0;";
         await using var connection = await connectionFactory.OpenSqlConnectionAsync(cancellationToken);
         var rows = await connection.ExecuteAsync(new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
         return rows > 0;

@@ -1,8 +1,6 @@
 import { clearAuthSession, createAuthHeaders, loadAuthSession } from "./auth";
 import { buildApiUrl } from "./config";
 
-export const DEMO_ACCESS_TOKEN = "restaurant-demo-session";
-
 export async function fetchWithAuth<T>(url: string): Promise<T> {
   const session = loadAuthSession();
   if (!session) throw new Error("AUTH_REQUIRED");
@@ -20,25 +18,6 @@ export async function fetchWithAuth<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function apiGet<T>(path: string, fallback: T): Promise<T> {
-  const session = loadAuthSession();
-  if (!session) throw new Error("AUTH_REQUIRED");
-
-  if (session.accessToken === DEMO_ACCESS_TOKEN) {
-    await new Promise((resolve) => window.setTimeout(resolve, 180));
-    return fallback;
-  }
-
-  try {
-    return await fetchWithAuth<T>(buildApiUrl(path));
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message === "AUTH_REQUIRED" || error.message === "AUTH_EXPIRED")
-    ) {
-      throw error;
-    }
-
-    return fallback;
-  }
+export async function apiGet<T>(path: string): Promise<T> {
+  return fetchWithAuth<T>(buildApiUrl(path));
 }

@@ -19,3 +19,5 @@ backend/**/*.sln.docstates
 *.log
 Thumbs.db
 .DS_Store
+# Integration verification output (may contain local database names).
+backend/tests/verification.log

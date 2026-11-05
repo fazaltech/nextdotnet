@@ -47,6 +47,15 @@ public static class DependencyInjection
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        if (context.Request.Path.StartsWithSegments("/hubs/restaurant"))
+                            context.Token = context.Request.Query["access_token"];
+                        return Task.CompletedTask;
+                    }
+                };
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -63,6 +72,7 @@ public static class DependencyInjection
         services.AddAuthorization();
 
         services.AddScoped<IDbConnectionFactory, SqlConnectionFactory>();
+        services.AddScoped<Backend.Application.Operations.IOperationsRepository, OperationsRepository>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
         services.AddScoped<IFoodCategoryRepository, FoodCategoryRepository>();

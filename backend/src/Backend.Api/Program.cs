@@ -8,7 +8,11 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddScoped<Backend.Api.Security.RestaurantAccess>();
+builder.Services.AddControllers(options => options.Filters.AddService<Backend.Api.Security.RestaurantAccess>());
+builder.Services.AddSignalR();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<Backend.Api.ServiceBridge>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
@@ -64,6 +68,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.Use(async (context,next) =>
+{
+    try { await next(context); }
+    catch (InvalidOperationException error) when (!context.Response.HasStarted)
+    { context.Response.StatusCode=409; await context.Response.WriteAsJsonAsync(new { message=error.Message }); }
+    catch (Microsoft.Data.SqlClient.SqlException error) when (!context.Response.HasStarted && error.Number is 547 or 2601 or 2627 or 1205 or 51000)
+    { context.Response.StatusCode=409; await context.Response.WriteAsJsonAsync(new { message="The operation conflicts with current data. Refresh and check references, duplicates, or quantities." }); }
+});
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -76,5 +88,6 @@ app.MapGet("/", () =>
 });
 
 app.MapControllers();
+app.MapHub<Backend.Api.Hubs.RestaurantHub>("/hubs/restaurant");
 
 app.Run();

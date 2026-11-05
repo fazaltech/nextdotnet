@@ -15,12 +15,12 @@ public sealed class ReportRepository(IDbConnectionFactory connectionFactory) : I
         await using var connection = await connectionFactory.OpenSqlConnectionAsync(cancellationToken);
 
         const string orderSql = @"
-SELECT COUNT(1) AS TotalOrders,
-       ISNULL(SUM(TotalAmount), 0) AS GrossSales
-FROM dbo.RmsSalesOrders
-WHERE OrderDateUtc >= @StartDate
-  AND OrderDateUtc < @EndDate
-  AND IsActive = 1;";
+SELECT COUNT(DISTINCT OrderId) AS TotalOrders,
+       ISNULL(SUM((COALESCE(Subtotal,TotalAmount)-Discount)*(1-CASE WHEN TotalAmount>0 THEN RefundAmount/TotalAmount ELSE 0 END)), 0) AS GrossSales
+FROM dbo.RmsInvoices
+WHERE InvoiceDateUtc >= @StartDate
+  AND InvoiceDateUtc < @EndDate
+  AND Status<>4 AND IsActive = 1;";
 
         var orderRow = await connection.QuerySingleAsync<OrderAggRow>(new CommandDefinition(orderSql,
             new { StartDate = start, EndDate = end }, cancellationToken: cancellationToken));
@@ -35,7 +35,9 @@ WHERE ExpenseDateUtc >= @StartDate
         var totalExpenses = await connection.ExecuteScalarAsync<decimal>(new CommandDefinition(expenseSql,
             new { StartDate = start, EndDate = end }, cancellationToken: cancellationToken));
 
-        return new DailySalesReportDto(date, orderRow.TotalOrders, orderRow.GrossSales, totalExpenses, orderRow.GrossSales - totalExpenses);
+        var ingredientCost=await connection.ExecuteScalarAsync<decimal>(new CommandDefinition("SELECT COALESCE(SUM(CASE WHEN TransactionType=1 THEN -Quantity ELSE Quantity END*COALESCE(UnitCost,0)),0) FROM dbo.RmsStockTransactions WHERE MovementKind IN ('Consumption','Reversal','Waste') AND CreatedAtUtc>=@StartDate AND CreatedAtUtc<@EndDate",new { StartDate=start,EndDate=end },cancellationToken:cancellationToken));
+        var grossProfit=orderRow.GrossSales-ingredientCost;
+        return new DailySalesReportDto(date, orderRow.TotalOrders, orderRow.GrossSales, totalExpenses, orderRow.GrossSales,ingredientCost,grossProfit,grossProfit-totalExpenses);
     }
 
     private sealed class OrderAggRow

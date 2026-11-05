@@ -33,9 +33,11 @@ WHERE Id = @Id;";
 
     public async Task<int> CreateAsync(InventoryItemUpsertRequest request, CancellationToken cancellationToken = default)
     {
+        if(request.Quantity!=0) throw new InvalidOperationException("Create inventory at zero, then record an opening count with a reason.");
+        if(request.UnitCost<0 || request.ReorderLevel<0 || string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Unit)) throw new InvalidOperationException("Name, unit and nonnegative costs/thresholds required.");
         const string sql = @"
 INSERT INTO dbo.RmsInventoryItems(Name, Unit, Quantity, ReorderLevel, UnitCost, IsActive)
-VALUES (@Name, @Unit, @Quantity, @ReorderLevel, @UnitCost, @IsActive);
+VALUES (@Name, @Unit, 0, @ReorderLevel, @UnitCost, @IsActive);
 SELECT CAST(SCOPE_IDENTITY() AS INT);";
 
         await using var connection = await connectionFactory.OpenSqlConnectionAsync(cancellationToken);
@@ -48,12 +50,11 @@ SELECT CAST(SCOPE_IDENTITY() AS INT);";
 UPDATE dbo.RmsInventoryItems
 SET Name = @Name,
     Unit = @Unit,
-    Quantity = @Quantity,
     ReorderLevel = @ReorderLevel,
     UnitCost = @UnitCost,
     IsActive = @IsActive,
     UpdatedAtUtc = SYSUTCDATETIME()
-WHERE Id = @Id;";
+WHERE Id = @Id AND Quantity=@Quantity AND (Unit=@Unit OR NOT EXISTS(SELECT 1 FROM dbo.RmsStockTransactions WHERE InventoryItemId=@Id)) AND (Unit=@Unit OR NOT EXISTS(SELECT 1 FROM dbo.RmsMenuItemRecipes WHERE InventoryItemId=@Id));";
 
         await using var connection = await connectionFactory.OpenSqlConnectionAsync(cancellationToken);
         var rows = await connection.ExecuteAsync(new CommandDefinition(sql,
@@ -64,7 +65,7 @@ WHERE Id = @Id;";
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        const string sql = @"DELETE FROM dbo.RmsInventoryItems WHERE Id = @Id;";
+        const string sql = @"UPDATE dbo.RmsInventoryItems SET IsActive=0 WHERE Id=@Id AND Quantity=0;";
         await using var connection = await connectionFactory.OpenSqlConnectionAsync(cancellationToken);
         var rows = await connection.ExecuteAsync(new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
         return rows > 0;

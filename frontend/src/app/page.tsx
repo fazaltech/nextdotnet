@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BarChart3,
-  Check,
   ChefHat,
   Eye,
   EyeOff,
@@ -16,18 +15,16 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import {
-  API_BASE_URL,
   LOGIN_ENDPOINT,
   loadAuthSession,
   saveAuthSession,
   type LoginResponse,
 } from "@/lib/auth";
-import { DEMO_ACCESS_TOKEN } from "@/lib/api";
 
 export default function Home() {
   const router = useRouter();
-  const [userNameOrEmail, setUserNameOrEmail] = useState("admin");
-  const [password, setPassword] = useState("Admin@12345");
+  const [userNameOrEmail, setUserNameOrEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,22 +59,10 @@ export default function Home() {
 
       enterDashboard((await response.json()) as LoginResponse);
     } catch {
-      setErrorMessage(`The API at ${API_BASE_URL} is currently unavailable. You can still explore with demo mode.`);
+      setErrorMessage("The sign-in service is currently unavailable. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  function handleDemo() {
-    enterDashboard({
-      accessToken: DEMO_ACCESS_TOKEN,
-      expiresAtUtc: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
-      userId: 0,
-      userName: "demo.manager",
-      email: "manager@embertable.demo",
-      fullName: "Alex Morgan",
-      roles: ["Restaurant Manager"],
-    });
   }
 
   return (
@@ -112,9 +97,9 @@ export default function Home() {
 
             <div className="mt-10 grid max-w-lg grid-cols-3 gap-3">
               {[
-                { icon: UtensilsCrossed, value: "96", label: "Orders today" },
-                { icon: BarChart3, value: "$4.8k", label: "Net sales" },
-                { icon: ShieldCheck, value: "99.9%", label: "Uptime" },
+                { icon: UtensilsCrossed, value: "Service", label: "Tables and orders" },
+                { icon: BarChart3, value: "Reports", label: "Sales and costs" },
+                { icon: ShieldCheck, value: "Access", label: "Role permissions" },
               ].map(({ icon: Icon, value, label }) => (
                 <div key={label} className="rounded-2xl border border-white/[0.07] bg-white/[0.035] p-4 backdrop-blur-sm">
                   <Icon className="h-4 w-4 text-[#e76535]" />
@@ -125,14 +110,6 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative z-10 flex items-center gap-3 text-[0.68rem] text-white/30">
-            <span className="flex -space-x-2">
-              {["AM", "JC", "SK"].map((name, index) => (
-                <span key={name} className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#24221e] text-[0.5rem] font-semibold ${["bg-[#c9a051]", "bg-[#557e70]", "bg-[#bf694c]"][index]}`}>{name}</span>
-              ))}
-            </span>
-            Trusted by teams that care about every plate.
-          </div>
         </section>
 
         <section className="flex items-center justify-center px-5 py-10 sm:px-10 lg:px-14 xl:px-20">
@@ -144,7 +121,7 @@ export default function Home() {
 
             <p className="eyebrow">Welcome back</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[#25211d] sm:text-[2.4rem]">Sign in to your restaurant</h2>
-            <p className="mt-3 text-sm leading-6 text-[#837c72]">Use your management account to continue to The Ember Table.</p>
+            <p className="mt-3 text-sm leading-6 text-[#837c72]">Use your restaurant account to continue.</p>
 
             <form className="mt-9 space-y-5" onSubmit={handleSubmit}>
               <div>
@@ -158,7 +135,7 @@ export default function Home() {
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <label htmlFor="password" className="text-[0.72rem] font-semibold text-[#4b463f]">Password</label>
-                  <button type="button" className="text-[0.68rem] font-medium text-[#e76535] hover:text-[#c94e24]">Forgot password?</button>
+                  <span className="text-xs text-stone-500">Ask your owner to reset a forgotten password.</span>
                 </div>
                 <div className="flex h-12 items-center gap-3 rounded-xl border border-[#dfdad1] bg-white px-3.5 transition-colors focus-within:border-[#e76535] focus-within:ring-4 focus-within:ring-[#e76535]/8">
                   <LockKeyhole className="h-4 w-4 text-[#aaa39a]" />
@@ -169,12 +146,6 @@ export default function Home() {
                 </div>
               </div>
 
-              <label className="flex w-fit items-center gap-2.5 text-[0.7rem] text-[#756f66]">
-                <span className="flex h-4 w-4 items-center justify-center rounded border border-[#d8d2c9] bg-[#e76535] text-white"><Check className="h-3 w-3" strokeWidth={3} /></span>
-                Keep me signed in on this device
-                <input type="checkbox" defaultChecked className="sr-only" />
-              </label>
-
               {errorMessage ? <p className="rounded-xl border border-[#f1c9bb] bg-[#fff2ed] px-4 py-3 text-xs leading-5 text-[#ad4522]">{errorMessage}</p> : null}
 
               <button type="submit" disabled={isSubmitting} className="btn-primary h-12 w-full disabled:cursor-not-allowed disabled:opacity-60">
@@ -183,17 +154,8 @@ export default function Home() {
               </button>
             </form>
 
-            <div className="my-6 flex items-center gap-3 text-[0.62rem] font-medium uppercase tracking-[0.16em] text-[#aaa39a]">
-              <span className="h-px flex-1 bg-[#e2ddd5]" />or<span className="h-px flex-1 bg-[#e2ddd5]" />
-            </div>
-
-            <button type="button" onClick={handleDemo} className="btn-secondary h-12 w-full">
-              <Sparkles className="h-4 w-4 text-[#d29f38]" />
-              Explore with demo data
-            </button>
-
             <p className="mt-7 text-center text-[0.66rem] leading-5 text-[#9b948b]">
-              Demo credentials are prefilled. By continuing, you agree to the workspace security policy.
+              Sign in using the account provided by your restaurant owner.
             </p>
           </div>
         </section>

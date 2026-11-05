@@ -1,140 +1,41 @@
 # Restaurant Management System
 
-## Screenshots
+Next.js 16 frontend and .NET 10 API with SQL Server, Dapper, ASP.NET Identity, and SignalR.
 
-### Sign in
+The application supports dining sessions and shared seats, manager approval, item-level kitchen and delivery states, recipe inventory, purchasing and partial receipts, split bills, payments/refunds, reporting, and permission-controlled administration.
 
-![Savorly restaurant management sign-in screen](docs/images/sign-in.png)
+See [the implementation and operations guide](docs/restaurant-service.md) for the inspected schema, additive database changes, connected UI/API routes, accounting rules, verification coverage, and remaining legacy/branch limitations.
 
-### Restaurant overview
+## Run locally
 
-![Savorly restaurant dashboard showing revenue, active orders, sales performance, and table occupancy](docs/images/restaurant-overview.png)
+Use .NET 10, SQL Server, and Node 22.13+.
 
-## Project Summary
+Configure `ConnectionStrings__DefaultConnection` and `Jwt__Key` securely through the environment or local development settings. On a new database, set `Bootstrap__AdminPassword` to create the initial `admin` account; existing account passwords are preserved.
 
-This repository contains a full-stack restaurant management system built with a Next.js frontend and an ASP.NET Core backend. The current implementation covers JWT-based authentication, a dashboard shell, customer data retrieval from secured API endpoints, and backend modules for common restaurant operations such as menu items, tables, orders, invoices, payments, inventory, expenses, reports, roles, users, and settings.
-
-The frontend focuses on an admin-facing dashboard experience. The login screen authenticates against the backend, stores the bearer token locally, and routes authenticated users into the dashboard. The customers page is already connected to the backend and loads live data from `/api/customers`, while analytics and messages are scaffolded as extendable dashboard sections.
-
-On the backend, the solution is organized into layered projects for API, application contracts, domain entities, repositories, and services. It uses SQL Server, ASP.NET Core Identity, JWT authentication, Entity Framework Core, and Dapper. On startup, the API initializes the database and seeds a default admin user, roles, and permissions.
-
-## Highlights
-
-- Next.js 16 frontend with App Router and TypeScript
-- ASP.NET Core Web API targeting .NET 10
-- JWT authentication with seeded admin credentials
-- SQL Server persistence with EF Core and Dapper
-- Layered backend structure for domain, application, repositories, and services
-- Swagger enabled in development
-- Dashboard UI with authenticated customer data loading
-
-## Tech Stack
-
-- Frontend: Next.js, React, TypeScript, Tailwind CSS
-- Backend: ASP.NET Core, ASP.NET Identity, JWT Bearer Auth
-- Data: SQL Server, Entity Framework Core, Dapper
-
-## Current Feature Scope
-
-- Authentication and token-based session handling
-- Dashboard shell with protected routes
-- Live customer listing from the backend API
-- Backend CRUD and reporting modules for:
-  - Food categories
-  - Menu items
-  - Tables
-  - Customers
-  - Orders
-  - Invoices
-  - Payments
-  - Inventory
-  - Expenses
-  - Reports
-  - Roles and permissions
-  - Users
-  - Settings
-
-## Repository Structure
-
-```text
-backend/
-  src/
-    Backend.Api/
-    Backend.Application/
-    Backend.Domain/
-    Backend.Repositories/
-    Backend.Services/
-
-frontend/
-  src/
-    app/
-    components/
-    lib/
-```
-
-## Local Setup
-
-### Prerequisites
-
-- Node.js 22.13+ (required by the installed frontend tooling)
-- npm
-- .NET 10 SDK
-- SQL Server instance
-
-### Backend
-
-1. Update the SQL Server connection string in `backend/src/Backend.Api/appsettings.Development.json` for local development. This overrides `appsettings.json` when using the development launch profile.
-2. Restore the required NuGet packages and build the solution:
-
-```bash
+```powershell
 dotnet restore backend/Backend.sln
-dotnet build backend/Backend.sln --no-restore
-```
-
-3. Start the API:
-
-```bash
 dotnet run --project backend/src/Backend.Api
 ```
 
-The development profile runs on `http://localhost:5179`, with Swagger available at `http://localhost:5179/swagger`.
+Startup applies the existing guarded schema initializer and the new additive service script. No EF migration command is needed. Development API: `http://localhost:5179`, Swagger: `/swagger`.
 
-### Frontend
-
-1. Install dependencies:
-
-```bash
+```powershell
 cd frontend
 npm ci
-```
-
-2. Create the local environment file from the example:
-
-```bash
-copy .env.example .env.local
-```
-
-3. Start the frontend:
-
-```bash
 npm run dev
 ```
 
-The frontend expects the backend API at `http://localhost:5179/api` by default.
+The frontend uses `NEXT_PUBLIC_API_BASE_URL`, defaulting to `http://localhost:5179/api`. Sign in with your actual restaurant account. Owners manage users and passwords at `/dashboard/settings`.
 
-## Default Login
+## Verify
 
-- Username: `admin`
-- Password: `Admin@12345`
+```powershell
+dotnet build backend/Backend.sln --no-restore
+powershell -NoProfile -ExecutionPolicy Bypass -File backend/tests/verify-service.ps1
+cd frontend
+npx tsc --noEmit
+npm run lint
+npm run build
+```
 
-These credentials are seeded automatically by the backend during startup.
-
-## API Notes
-
-- Root endpoint: `GET /`
-- Login endpoint: `POST /api/auth/login`
-- Example secured endpoint used by the frontend: `GET /api/customers`
-
-## Status
-
-This project already has the backend domain and API surface for a restaurant management platform, plus an operational frontend authentication flow and dashboard shell. Parts of the frontend are still scaffolded and ready for deeper integration with backend summary, analytics, messaging, and operational modules.
+The integration harness creates and retains a uniquely named isolated verification database. It does not write fixtures into the restaurant database. It exercises transactional stock/billing, permissions, password resets, reports, and a SignalR WebSocket notification. See the operations guide for details and limits.

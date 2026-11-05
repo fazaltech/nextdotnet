@@ -8,6 +8,15 @@ public sealed class UserService(
     UserManager<ApplicationUser> userManager,
     RoleManager<ApplicationRole> roleManager) : IUserService
 {
+    public async Task<bool> ResetPasswordAsync(int id, ResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await userManager.FindByIdAsync(id.ToString());
+        if (user is null) return false;
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await userManager.ResetPasswordAsync(user, token, request.Password);
+        if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(x=>x.Description)));
+        return true;
+    }
     public async Task<IReadOnlyList<UserDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var users = userManager.Users.OrderBy(x => x.Id).ToList();

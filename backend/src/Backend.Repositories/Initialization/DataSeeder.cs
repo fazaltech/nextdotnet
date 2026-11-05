@@ -8,10 +8,15 @@ namespace Backend.Repositories.Initialization;
 public sealed class DataSeeder(
     RoleManager<ApplicationRole> roleManager,
     UserManager<ApplicationUser> userManager,
-    Database.IDbConnectionFactory connectionFactory) : IDataSeeder
+    Database.IDbConnectionFactory connectionFactory,
+    Microsoft.Extensions.Configuration.IConfiguration configuration) : IDataSeeder
 {
     private static readonly (string Name, string Description)[] DefaultPermissions =
     [
+        ("service.use", "Use dining service"),
+        ("kitchen.use", "Prepare kitchen items"),
+        ("purchases.manage", "Manage purchases"),
+        ("refunds.manage", "Authorize refunds and voids"),
         ("users.manage", "Manage users"),
         ("roles.manage", "Manage roles and permissions"),
         ("foodcategories.manage", "Manage food categories"),
@@ -55,7 +60,9 @@ public sealed class DataSeeder(
                 IsActive = true
             };
 
-            var createResult = await userManager.CreateAsync(adminUser, "Admin@12345");
+            var bootstrapPassword = configuration["Bootstrap:AdminPassword"];
+            if (string.IsNullOrWhiteSpace(bootstrapPassword)) throw new InvalidOperationException("Set Bootstrap__AdminPassword to create the initial administrator.");
+            var createResult = await userManager.CreateAsync(adminUser, bootstrapPassword);
             if (!createResult.Succeeded)
             {
                 throw new InvalidOperationException(string.Join("; ", createResult.Errors.Select(x => x.Description)));
@@ -95,16 +102,32 @@ END";
             cancellationToken: cancellationToken))).ToArray();
 
         const string clearAndInsertSql = @"
-DELETE FROM dbo.RmsRolePermissions WHERE RoleId = @RoleId;
 INSERT INTO dbo.RmsRolePermissions(RoleId, PermissionId)
 SELECT @RoleId, p.Id
 FROM dbo.RmsPermissions p
-WHERE p.Id IN @PermissionIds;";
+WHERE p.Id IN @PermissionIds AND NOT EXISTS(SELECT 1 FROM dbo.RmsRolePermissions rp WHERE rp.RoleId=@RoleId AND rp.PermissionId=p.Id);";
 
         await connection.ExecuteAsync(new CommandDefinition(
             clearAndInsertSql,
             new { RoleId = adminRole.Id, PermissionIds = permissionIds },
             cancellationToken: cancellationToken));
+
+        foreach (var roleName in new[] { "Owner", "Employee", "Kitchen Staff" })
+            if (!await roleManager.RoleExistsAsync(roleName))
+                await roleManager.CreateAsync(new ApplicationRole { Name = roleName, Description = roleName });
+        // Initialize persona grants once; subsequent permission edits remain authoritative.
+        await connection.ExecuteAsync(new CommandDefinition(@"
+IF NOT EXISTS(SELECT 1 FROM dbo.RmsAuditEvents WHERE Action='System.InitializePersonaGrants')
+BEGIN
+ INSERT dbo.RmsRolePermissions(RoleId,PermissionId)
+ SELECT r.Id,p.Id FROM dbo.AspNetRoles r CROSS JOIN dbo.RmsPermissions p
+ WHERE ((r.Name='Owner') OR
+ (r.Name='Manager' AND p.Name NOT IN ('users.manage','roles.manage','settings.manage')) OR
+ (r.Name='Employee' AND p.Name IN ('service.use','dashboard.view')) OR
+ (r.Name='Kitchen Staff' AND p.Name IN ('kitchen.use','dashboard.view')))
+ AND NOT EXISTS(SELECT 1 FROM dbo.RmsRolePermissions rp WHERE rp.RoleId=r.Id AND rp.PermissionId=p.Id);
+ INSERT dbo.RmsAuditEvents(Action,EntityId,UserId,Details,RequestKey) VALUES('System.InitializePersonaGrants',0,@adminId,'Initial persona permission grants',NEWID());
+END", new { adminId=adminUser.Id }, cancellationToken: cancellationToken));
     }
 }
 

@@ -16,6 +16,7 @@ public sealed class DatabaseInitializer(
 
         await using var connection = await OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(new CommandDefinition(DatabaseSchema.Sql, cancellationToken: cancellationToken));
+        await connection.ExecuteAsync(new CommandDefinition(ServiceSchema.Sql, cancellationToken: cancellationToken));
     }
 
     private async Task EnsureIdentityTablesAsync(CancellationToken cancellationToken)

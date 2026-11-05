@@ -7,7 +7,7 @@ namespace Backend.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/inventory")]
-public sealed class InventoryController(IInventoryService service) : ControllerBase
+public sealed class InventoryController(IInventoryService service, Backend.Api.ServiceBridge bridge) : ControllerBase
 {
     [HttpGet("items")]
     public Task<IReadOnlyList<InventoryItemDto>> GetItems(CancellationToken cancellationToken) => service.GetAllAsync(cancellationToken);
@@ -41,7 +41,8 @@ public sealed class InventoryController(IInventoryService service) : ControllerB
     [HttpPost("stock-transactions")]
     public async Task<IActionResult> CreateStockTransaction([FromBody] StockTransactionRequest request, CancellationToken cancellationToken)
     {
-        var id = await service.CreateStockTransactionAsync(request, cancellationToken);
+        if(!Enum.IsDefined(request.TransactionType) || request.Quantity<=0) throw new InvalidOperationException("Positive quantity and valid transaction type required.");
+        var id = await bridge.Run("stock-adjust",new Backend.Application.Operations.OperationRequest { InventoryItemId=request.InventoryItemId, Quantity=request.TransactionType==Backend.Domain.Enums.StockTransactionType.Out?-request.Quantity:request.Quantity,Reason=request.Notes },cancellationToken);
         return Ok(new { id });
     }
 }

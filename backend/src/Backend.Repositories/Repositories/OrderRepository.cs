@@ -6,7 +6,7 @@ using Dapper;
 
 namespace Backend.Repositories.Repositories;
 
-public sealed class OrderRepository(IDbConnectionFactory connectionFactory, ITableRepository tableRepository) : IOrderRepository
+public sealed class OrderRepository(IDbConnectionFactory connectionFactory) : IOrderRepository
 {
     public async Task<IReadOnlyList<OrderDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
@@ -194,16 +194,6 @@ WHERE Id = @Id;";
         if (rows == 0)
         {
             return false;
-        }
-
-        if (status is OrderStatus.Served or OrderStatus.Cancelled)
-        {
-            const string getTableSql = "SELECT TableId FROM dbo.RmsSalesOrders WHERE Id = @Id;";
-            var tableId = await connection.ExecuteScalarAsync<int?>(new CommandDefinition(getTableSql, new { Id = id }, cancellationToken: cancellationToken));
-            if (tableId.HasValue)
-            {
-                await tableRepository.SetOccupiedAsync(tableId.Value, false, cancellationToken);
-            }
         }
 
         return true;

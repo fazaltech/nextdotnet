@@ -134,11 +134,24 @@ export default function ServiceWorkspace({area="orders"}:{area?:string}) {
   useEffect(()=>{
     if(!permissions)return;
     const hub=new HubConnectionBuilder().withUrl(API_BASE_URL.replace(/\/api$/,"")+"/hubs/restaurant",{accessTokenFactory:()=>loadAuthSession()?.accessToken??"",transport:HttpTransportType.WebSockets,skipNegotiation:true}).withAutomaticReconnect().configureLogging(LogLevel.Error).build();
-    hub.on("Changed",()=>void reload());hub.onreconnecting(()=>setConnected(false));hub.onreconnected(()=>{setConnected(true);void reload();});hub.onclose(()=>setConnected(false));
     let disposed=false;
-    void hub.start().then(()=>{if(!disposed){setConnected(true);void reload();}}).catch(()=>setConnected(false));
+    hub.on("Changed",()=>{if(!disposed)void reload();});
+    hub.onreconnecting(()=>{if(!disposed)setConnected(false);});
+    hub.onreconnected(()=>{if(!disposed){setConnected(true);void reload();}});
+    hub.onclose(()=>{if(!disposed)setConnected(false);});
+    // Skip startup if React cleans up this effect before the next microtask.
+    const started=Promise.resolve().then(async()=>{
+      if(disposed)return;
+      await hub.start();
+      if(!disposed){setConnected(true);void reload();}
+    }).catch(()=>{if(!disposed)setConnected(false);});
     const poll=window.setInterval(()=>{void reload();},30000);
-    return()=>{disposed=true;window.clearInterval(poll);void hub.stop();};
+    return()=>{
+      disposed=true;
+      window.clearInterval(poll);
+      // SignalR logs an error if stop interrupts a pending start.
+      void started.then(()=>hub.stop()).catch(error=>console.error("Failed to stop restaurant connection.",error));
+    };
   },[permissions,reload]);
   const lists=useMemo<Record<string,Row[]>>(()=>({...data,
     sessions:(data.tables??[]).filter(r=>r.sessionId).map(r=>({...r,id:r.sessionId})),
